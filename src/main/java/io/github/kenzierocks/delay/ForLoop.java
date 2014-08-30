@@ -2,9 +2,7 @@ package io.github.kenzierocks.delay;
 
 import io.github.kenzierocks.delay.exceptionalcontrol.ControlException;
 
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -34,6 +32,23 @@ public class ForLoop<ObjectType> {
         }
     }
 
+    private static final class NothingLoop<T> extends ForLoop<T> {
+        public NothingLoop(String label) {
+            super(loop -> {
+            }, loop -> {
+                return Boolean.FALSE;
+            }, loop -> {
+            }, loop -> {
+                return null;
+            }, (x, loop) -> {
+            }, label);
+        }
+
+        public NothingLoop() {
+            this(ControlException.DEFAULT_LABEL);
+        }
+    }
+
     public static final ForLoop<Integer> normalCounterLoop(int start, int max,
             BiConsumer<Integer, ForLoop<Integer>> body) {
         return counterLoopWithStep(start, max, 1, body);
@@ -47,7 +62,7 @@ public class ForLoop<ObjectType> {
     public static final ForLoop<Integer> counterLoopWithStep(int start,
             int limit, int step, BiConsumer<Integer, ForLoop<Integer>> body) {
         return new ForLoop<>(loop -> loop.setCounter(start),
-                loop -> step < 0 ? loop.getCounter() < limit : loop
+                loop -> step > 0 ? loop.getCounter() < limit : loop
                         .getCounter() >= limit,
                 loop -> loop.setCounter(loop.getCounter() + step),
                 loop -> loop.getCounter(), body);
@@ -56,10 +71,15 @@ public class ForLoop<ObjectType> {
     public static final <T> ForLoop<T> forEach(Iterable<T> iterOver,
             BiConsumer<T, ForLoop<T>> body) {
         Iterator<T> itr = iterOver.iterator();
-        List<T> store = Arrays.<T> asList((T) null);
+        if (!itr.hasNext()) {
+            // special empty case
+            return new NothingLoop<T>();
+        }
+        boolean[] hadNextWrap = { itr.hasNext() };
         return new ForLoop<>(loop -> {
-        }, loop -> itr.hasNext(), loop -> store.set(0, itr.next()),
-                loop -> store.get(0), body);
+        }, loop -> hadNextWrap[0], loop -> {
+            hadNextWrap[0] = itr.hasNext();
+        }, loop -> itr.next(), body);
     }
 
     public static final <T> ForLoop<T> forEach(T[] iterOver,
@@ -76,7 +96,7 @@ public class ForLoop<ObjectType> {
     private final BiConsumer<ObjectType, ForLoop<ObjectType>> loopBody;
     private final String label;
 
-    private ForLoop(Consumer<ForLoop<ObjectType>> init,
+    ForLoop(Consumer<ForLoop<ObjectType>> init,
             Function<ForLoop<ObjectType>, Boolean> expr,
             Consumer<ForLoop<ObjectType>> update,
             Function<ForLoop<ObjectType>, ObjectType> supplierOfType,
@@ -89,7 +109,7 @@ public class ForLoop<ObjectType> {
         init.accept(this);
     }
 
-    private ForLoop(Consumer<ForLoop<ObjectType>> init,
+    ForLoop(Consumer<ForLoop<ObjectType>> init,
             Function<ForLoop<ObjectType>, Boolean> expr,
             Consumer<ForLoop<ObjectType>> update,
             Function<ForLoop<ObjectType>, ObjectType> supplierOfType,
