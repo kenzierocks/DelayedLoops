@@ -1,0 +1,33 @@
+ext.pname = "Delayed Loops"
+ext.version = "0.0.1a"
+apply from: 'util.gradle', to: project
+
+apply plugin: 'java'
+compileJava.sourceCompatibility = '1.8'
+compileJava.targetCompatibility = '1.8'
+jar {
+    version = project.version
+}
+
+apply plugin: 'eclipse'
+        
+eclipse {
+    jdt {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+}
+// force 1.8
+eclipse.classpath.containers.clear()
+eclipse.classpath.containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+
+// eclipse bug workaround
+task reeclipse(dependsOn: ['cleanEclipseClasspath', 'eclipse'])
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
